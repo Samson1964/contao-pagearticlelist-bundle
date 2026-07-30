@@ -1,5 +1,9 @@
 # Seiten- und Artikellisten Changelog
 
+## Version 0.1.2 (2026-07-30)
+
+* Change: Beschreibung, Keywords und Homepage in der composer.json ergänzt, damit Packagist das Paket verständlich darstellt und über die Suche auffindbar macht
+
 ## Version 0.1.1 (2024-12-02)
 
 * Fix: Überschrift im Template wird doppelt ausgegeben -> Ausgabe headline im Template entfernt

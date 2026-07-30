@@ -1,7 +1,14 @@
 {
     "name": "schachbulle/contao-pagearticlelist-bundle",
     "type": "contao-bundle",
-    "description": "Erweiterung für Seiten- und Artikellisten für Contao 4",
+    "description": "Inhaltselement für Seiten- und Artikellisten. Fork von srhinow/ce_article_list, das ab Contao 4.9 nicht mehr lief.",
+    "keywords": [
+        "contao",
+        "artikel",
+        "seiten",
+        "liste"
+    ],
+    "homepage": "https://github.com/Samson1964/contao-pagearticlelist-bundle",
     "license": "LGPL-3.0-or-later",
     "authors": [
         {
