@@ -1,0 +1,12 @@
+# Quelle fuer die Metadaten im Contao Manager (contao/package-metadata).
+# Aenderungen hier werden von Claude in den Fork uebertragen.
+# Der englische Block wird beim Abgleich ergaenzt, falls er fehlt.
+
+de:
+    title: Seiten- und Artikellisten
+    description: >
+        Inhaltselement für Seiten- und Artikellisten. Fork von srhinow/ce_article_list, das ab Contao 4.9 nicht mehr lief.
+    keywords:
+        - Artikel
+        - Seiten
+        - Liste
