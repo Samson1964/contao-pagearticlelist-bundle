@@ -1,331 +1,230 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Contao Open Source CMS
+ * Seiten- und Artikellisten für Contao Open Source CMS
  *
- * Copyright (C) 2005-2013 Leo Feyer
- *
- * @package   chesstable
- * Version    1.0.0
  * @author    Frank Hoppe
- * @license   GNU/LGPL
- * @copyright Frank Hoppe 2013
+ * @license   LGPL-3.0-or-later
  */
 
 namespace Schachbulle\ContaoPagearticlelistBundle\ContentElements;
 
-class Articlelist extends \ContentElement
-{
+use Contao\ArticleModel;
+use Contao\Model\Collection;
+use Contao\PageModel;
+use Contao\StringUtil;
 
+/**
+ * Inhaltselement "Artikelliste".
+ *
+ * Gibt zu jeder ausgewählten Seite deren Artikel aus, wahlweise mit
+ * Seitenüberschrift und Artikelteaser. Seiten ohne Artikel erscheinen nicht.
+ *
+ * Der Bildblock der Ursprungserweiterung ist in Version 1.0.0 entfallen: Er hat
+ * die Spalten addImage und singleSRC in tl_article ausgewertet, die es nur mit
+ * der Contao-3-Erweiterung "zArticleImage" gab, und er stützte sich auf
+ * Controller::addImageToTemplate(), das es seit Contao 5 nicht mehr gibt.
+ */
+class Articlelist extends AbstractListElement
+{
 	/**
-	 * Template
+	 * Name des Frontend-Templates
 	 * @var string
 	 */
 	protected $strTemplate = 'ce_article_list';
 
 	/**
-	 * Generate the module
+	 * Stellt die Artikelliste zusammen und übergibt sie an das Template.
+	 *
+	 * Die Methode wird von Contao aufgerufen, nachdem $this->Template angelegt
+	 * wurde, und liefert nichts zurück. Sie füllt zwei Template-Variablen:
+	 * "pages" mit je einem Eintrag pro Seite samt der darin enthaltenen Artikel
+	 * und "hlPage" mit der HTML-Auszeichnung der Seitenüberschrift — oder mit
+	 * false, wenn keine Überschriften gewünscht sind.
+	 *
+	 * Seiten ohne sichtbare Artikel werden ausgelassen, damit keine leeren
+	 * Überschriften stehen bleiben.
 	 */
-	protected function compile()
+	protected function compile(): void
 	{
+		$intCurrentPageId = $this->getCurrentPageId();
+		$arrSelectedIds = $this->getSelectedPageIds();
+		$arrPageIds = $this->collectPageIds($intCurrentPageId);
 
-		global $objPage;
+		$this->Template->hlPage = $this->getPageHeadlineTag();
 
-		$query = '';
-		$pages = array();
+		$objPages = $this->findPages($arrPageIds);
 
-		$selectedPages = deserialize($this->article_list_pages);
-
-		if (is_array($selectedPages))
+		if (null === $objPages)
 		{
-			$articleListPages = $selectedPages;
-		}
-		elseif (!empty($selectedPages))
-		{
-			$articleListPages = array($selectedPages);
-		}
-		else
-		{
-			$articleListPages = array();
+			$this->Template->pages = array();
+
+			return;
 		}
 
-		if (TL_MODE == 'FE')
+		$arrPages = array();
+
+		foreach ($objPages as $objPage)
 		{
-			$pageId = $objPage->id;
-		}
-		else
-		{
-			$objArticle = \ArticleModel::findByIdOrAlias($this->pid);
-			if($objArticle)
+			if (!$this->isPageVisible($objPage, $arrSelectedIds))
 			{
-				$pageId = $objArticle->pid;
+				continue;
 			}
-		}
 
-		if ($this->article_list_childrens)
-		{
-			array_splice($articleListPages, 0, 0, $this->getChildPages($pageId, false));
-		}
+			$objArticles = $this->findArticles((int) $objPage->id);
 
-		if ($this->article_list_recursive)
-		{
-			for ($i=count($articleListPages)-1; $i>=0; $i--)
+			if (null === $objArticles)
 			{
-				array_splice($articleListPages, $i+1, 0, $this->getChildPages($articleListPages[$i], true, @$this->idLevels[$articleListPages[$i]]+1));
+				continue;
 			}
-		}
 
-		if (count($articleListPages))
-		{
-			$objPages = \Database::getInstance()->prepare("SELECT * FROM tl_page WHERE " . (!\Input::cookie('FE_PREVIEW') ? " published='1' AND " : "") . "id IN (" . implode(',', $articleListPages) . ") ORDER BY sorting")
-			                                    ->execute();
+			$intId = (int) $objPage->id;
+			$blnProtected = $this->isProtected($objPage->protected, $objPage->groups);
+			$blnActive = $intCurrentPageId === $intId;
 
-			if($objPages->numRows > 0)
+			$arrClasses = array();
+
+			if ($blnActive)
 			{
-				$arrInactiveModules = deserialize(@$GLOBALS['TL_CONFIG']['inactiveModules']);
-
-				$sql = "
-					SELECT
-						*
-					FROM
-						tl_article
-					WHERE " .
-						(!\Input::cookie('FE_PREVIEW') ? "`published`='1' AND" : "") . " `pid`=?
-					ORDER BY `sorting`";
-
-				$this->import('FrontendUser', 'User');
-
-				while($objPages->next())
-				{
-					if ($this->article_list_hidden || ($objPages->hide != '1') || in_array($objPages->id, $selectedPages))
-					{
-						$protectedPage = false;
-
-						// Protected element
-						if (!BE_USER_LOGGED_IN && $objPages->protected)
-						{
-							if (!FE_USER_LOGGED_IN)
-							{
-								$protectedPage = true;
-							}
-							else
-							{
-								$groups = deserialize($objPages->groups);
-
-								if (!is_array($groups) || empty($groups) || !count(array_intersect($groups, $this->User->groups)))
-								{
-									$protectedPage = true;
-								}
-							}
-						}
-
-						$objArticles = \Database::getInstance()->prepare($sql)->execute($objPages->id);
-
-						if ($objArticles->numRows > 0)
-						{
-							$articles = array();
-
-							while ($objArticles->next())
-							{
-								if ($this->article_list_page_link && ($objArticles->numRows == 1))
-								{
-									$link = '';
-								}
-								else
-								{
-									$link = '/articles/';
-
-									if ($objArticles->inColumn != 'main')
-									{
-										$link .= $objArticles->inColumn . ':';
-									}
-
-									$link .= (strlen($objArticles->alias) && !@$GLOBALS['TL_CONFIG']['disableAlias']) ? $objArticles->alias : $objArticles->id;
-								}
-
-								/**
-								 * Special handling for zArticleImage or teaserimages extension
-								 */
-								$imageTemplate = false;
-								$addImage = false;
-
-								if (version_compare(VERSION, '3', '>='))
-								{
-									if ($objArticles->addImage && $objArticles->singleSRC != '')
-									{
-										if (version_compare(VERSION, '3.2', '>='))
-										{
-											$objModel = \FilesModel::findByUuid($this->singleSRC);
-										}
-										else
-										{
-											$objModel = \FilesModel::findByPk($objArticles->singleSRC);
-										}
-
-										if ($objModel !== null && is_file(TL_ROOT . '/' . $objModel->path))
-										{
-											$addImage = true;
-											$imageTemplate = new SubTemplate();
-
-											$objArticles->singleSRC = $objModel->path;
-											$this->addImageToTemplate($imageTemplate, $objArticles->row());
-										}
-									}
-								}
-								else
-								{
-									if ($objArticles->addImage && strlen($objArticles->singleSRC) && is_file(TL_ROOT . '/' . $objArticles->singleSRC))
-									{
-										$addImage = true;
-										$imageTemplate = new SubTemplate();
-
-										$this->addImageToTemplate($imageTemplate, $objArticles->row());
-									}
-								}
-
-								$arrTeaserCssID = deserialize($objArticles->teaserCssID);
-
-								$isProtected = $protectedPage;
-
-								// Protected element
-								if (!$protectedPage && !BE_USER_LOGGED_IN && $objArticles->protected)
-								{
-									if (!FE_USER_LOGGED_IN)
-									{
-										$isProtected = true;
-									}
-									else
-									{
-										$groups = deserialize($objArticles->groups);
-
-										if (!is_array($groups) || empty($groups) || !count(array_intersect($groups, $this->User->groups)))
-										{
-											$isProtected = true;
-										}
-									}
-								}
-
-								$articles[] = array
-								(
-									'id'			=> $objArticles->id,
-									'active'		=> ($this->pid == $objArticles->id),
-									'class'			=> ($this->pid == $objArticles->id ? 'active'.($isProtected ? ' protected' : '') : ($isProtected ? 'protected' : '')),
-									'title'			=> $objArticles->title,
-									'teaser'		=> ($this->article_list_teaser ? $objArticles->teaser : ''),
-									'teaser_cssID'	=> isset($arrTeaserCssID[0]) ? $arrTeaserCssID[0] : '',
-									'teaser_class'	=> isset($arrTeaserCssID[1]) ? $arrTeaserCssID[1] : '',
-									'link'			=> \Controller::generateFrontendUrl($objPages->row(), $link, null, true),
-									'protected'		=> $isProtected,
-									'image'			=> $imageTemplate,
-									'addImage'		=> $addImage,
-									'row'			=> $objArticles->row()
-								);
-							}
-
-							$pages[] = array
-							(
-								'name' => $objPages->title,
-								'title' => ($objPages->pageTitle != '' ? $objPages->pageTitle : $objPages->title),
-								'link' => $this->generateFrontendUrl($objPages->row(), null, null, true),
-								'protected' => $protectedPage,
-								'articles' => $articles,
-								'level' => (isset($this->idLevels[$objPages->id]) ? $this->idLevels[$objPages->id] : 0),
-								'active' => ($pageId == $objPages->id),
-								'class' => ($pageId == $objPages->id ? 'active'.($protectedPage ? ' protected' : '') : ($protectedPage ? 'protected' : '')),
-								'sort' => (array_search($objPages->id, $articleListPages) !== FALSE ? array_search($objPages->id, $articleListPages) + 9000000 : $objPages->sorting)
-							);
-						}
-					}
-				}
+				$arrClasses[] = 'active';
 			}
-		}
-		elseif (TL_MODE == 'FE')
-		{
-			$this->log(sprintf('No articles for ID %d (%s) found.', $objPage->id, $objPage->title), 'ArticleList', TL_ERROR);
+
+			if ($blnProtected)
+			{
+				$arrClasses[] = 'protected';
+			}
+
+			$arrPages[] = array
+			(
+				'id'        => $intId,
+				'name'      => StringUtil::specialchars($objPage->title),
+				'title'     => StringUtil::specialchars($objPage->pageTitle ?: $objPage->title),
+				'link'      => $blnProtected ? '' : $this->generatePageUrl($objPage),
+				'protected' => $blnProtected,
+				'articles'  => $this->compileArticles($objArticles, $objPage, $blnProtected),
+				'level'     => $this->arrLevels[$intId] ?? 0,
+				'active'    => $blnActive,
+				'class'     => implode(' ', $arrClasses),
+			);
 		}
 
-		if ((count($pages) > 0) && (count($articleListPages) > 0))
-		{
-			usort($pages, array($this, 'pageSort'));
-		}
-
-		$this->Template->pages = $pages;
-
-		if ($this->article_list_page_headline)
-		{
-			$hlNext = array('h1'=>'h2','h2'=>'h3','h3'=>'h4','h4'=>'h5','h5'=>'h6','h6'=>'p');
-			$this->Template->hlPage = (isset($hlNext[$this->hl]) ? $hlNext[$this->hl] : 'p');
-		}
-		else
-		{
-			$this->Template->hlPage = false;
-		}
-	}
-
-
-	/**
-	 * Helper function for usort
-	 */
-	protected function pageSort($a, $b)
-	{
-		if ($a['sort'] == $b['sort']) {
-		    return 0;
-		}
-		return ($a['sort'] < $b['sort']) ? -1 : 1;
+		$this->Template->pages = $this->sortByPageOrder($arrPages, $arrPageIds);
 	}
 
 	/**
-	 * Gets all child pages if article_list_recursive is set
+	 * Bereitet die Artikel einer Seite für das Template auf.
+	 *
+	 * @param Collection $objArticles      Die Artikel der Seite in
+	 *                                     Sortierreihenfolge
+	 * @param PageModel  $objPage          Die Seite, zu der die Artikel gehören;
+	 *                                     wird für den Aufbau der Adresse gebraucht
+	 * @param bool       $blnPageProtected true, wenn bereits die Seite gesperrt
+	 *                                     ist — dann sind auch alle Artikel darin
+	 *                                     gesperrt und die Rechteprüfung je Artikel
+	 *                                     kann entfallen
+	 *
+	 * @return array<int,array<string,mixed>> Ein Eintrag je Artikel mit Titel,
+	 *                                        Adresse, Teaser und CSS-Klasse
 	 */
-	protected function getChildPages($pageId, $recursive = true, $level=0)
+	protected function compileArticles(Collection $objArticles, PageModel $objPage, bool $blnPageProtected): array
 	{
-		$pageArray = array();
+		$arrArticles = array();
 
-		$objPages = \Database::getInstance()->prepare("
-			SELECT
-				`id`
-			FROM
-				`tl_page`
-			WHERE
-				`pid`=? AND
-				`type`='regular'
-				".(!\Input::cookie('FE_PREVIEW') ? " AND `published`='1' " : "")."
-			ORDER BY
-				`sorting`
-		")->execute($pageId);
+		// Die Option "Seiten statt einzelnen Artikel verlinken" greift nur, wenn
+		// die Seite genau einen Artikel enthält — sonst wäre nicht erkennbar,
+		// welcher Artikel gemeint ist.
+		$blnLinkPage = (bool) $this->article_list_page_link && 1 === \count($objArticles);
 
-		while ($objPages->next())
+		foreach ($objArticles as $objArticle)
 		{
-			$pageArray[] = $objPages->id;
-			$this->idLevels[$objPages->id] = $level;
+			$intId = (int) $objArticle->id;
+			$blnProtected = $blnPageProtected || $this->isProtected($objArticle->protected, $objArticle->groups);
 
-			if ($recursive)
+			// $this->pid ist die ID des Artikels, in dem dieses Inhaltselement
+			// liegt — damit lässt sich der eigene Artikel in der Liste markieren.
+			$blnActive = (int) $this->pid === $intId;
+
+			$arrClasses = array();
+
+			if ($blnActive)
 			{
-				$pageArray = array_merge($pageArray, $this->getChildPages($objPages->id, $recursive, $level+1));
+				$arrClasses[] = 'active';
 			}
+
+			if ($blnProtected)
+			{
+				$arrClasses[] = 'protected';
+			}
+
+			$arrTeaserCssID = StringUtil::deserialize($objArticle->teaserCssID, true);
+
+			$arrArticles[] = array
+			(
+				'id'           => $intId,
+				'active'       => $blnActive,
+				'class'        => implode(' ', $arrClasses),
+				'title'        => StringUtil::specialchars($objArticle->title),
+				// Der Teaser ist redaktionell gepflegtes HTML und wird deshalb
+				// bewusst nicht maskiert.
+				'teaser'       => $this->article_list_teaser ? ($objArticle->teaser ?? '') : '',
+				'teaser_cssID' => StringUtil::specialchars((string) ($arrTeaserCssID[0] ?? '')),
+				'teaser_class' => StringUtil::specialchars((string) ($arrTeaserCssID[1] ?? '')),
+				'link'         => $blnProtected ? '' : $this->generateArticleUrl($objArticle, $objPage, $blnLinkPage),
+				'protected'    => $blnProtected,
+			);
 		}
 
-		return $pageArray;
+		return $arrArticles;
 	}
 
-}
-
-/**
- * Class SubTemplate
- *
- * Template class for zArticleImage or teaserimages extension.
- * @copyright  Mario Müller 2016
- * @author     Mario Müller https://www.lingolia.com/
- * @package    ce_article_list
- */
-class SubTemplate extends \Template
-{
 	/**
-	 * SubTemplate constructor.
-	 * Create a new template instance
+	 * Baut die Adresse eines Artikels.
+	 *
+	 * Contao spricht Artikel über den Adresszusatz /articles/<alias> an. Der in
+	 * Contao 3 übliche Spaltenpräfix (etwa /articles/left:mein-artikel) entfällt —
+	 * der Contao-Kern erzeugt seit Version 5 ebenfalls nur noch den reinen Alias,
+	 * und ohne Alias springt Contao auf die Artikel-ID zurück.
+	 *
+	 * @param ArticleModel $objArticle  Der zu verlinkende Artikel
+	 * @param PageModel    $objPage     Die Seite, auf der der Artikel liegt
+	 * @param bool         $blnLinkPage true = statt des Artikels die Seite selbst
+	 *                                  verlinken
+	 *
+	 * @return string Die Adresse, oder eine leere Zeichenkette wenn sich für die
+	 *                Seite keine Route erzeugen lässt
 	 */
-	public function __construct()
+	protected function generateArticleUrl(ArticleModel $objArticle, PageModel $objPage, bool $blnLinkPage): string
 	{
-		parent::__construct('article_list_image');
+		if ($blnLinkPage)
+		{
+			return $this->generatePageUrl($objPage);
+		}
+
+		return $this->generatePageUrl($objPage, '/articles/' . ($objArticle->alias ?: $objArticle->id));
+	}
+
+	/**
+	 * Ermittelt die HTML-Auszeichnung für die Seitenüberschriften.
+	 *
+	 * Die Überschrift einer Seite steht in der Gliederung eine Stufe unter der
+	 * Überschrift des Inhaltselements — steht das Element auf h2, bekommen die
+	 * Seiten h3. Unterhalb von h6 gibt es keine Überschriftenebene mehr, dort
+	 * wird auf einen Absatz ausgewichen.
+	 *
+	 * @return string|false Der Tagname, oder false wenn im Backend keine
+	 *                      Seitenüberschriften gewünscht sind
+	 */
+	protected function getPageHeadlineTag()
+	{
+		if (!$this->article_list_page_headline)
+		{
+			return false;
+		}
+
+		$arrNext = array('h1' => 'h2', 'h2' => 'h3', 'h3' => 'h4', 'h4' => 'h5', 'h5' => 'h6', 'h6' => 'p');
+
+		return $arrNext[$this->hl] ?? 'p';
 	}
 }

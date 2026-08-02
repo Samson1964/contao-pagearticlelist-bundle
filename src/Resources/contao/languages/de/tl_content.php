@@ -1,24 +1,30 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * @copyright  Lingo4you 2018
- * @author     Mario Müller <http://www.lingo4u.de/>
- * @package    ArticleList
- * @license    http://opensource.org/licenses/lgpl-3.0.html
+ * Seiten- und Artikellisten für Contao Open Source CMS
+ *
+ * Beschriftungen der Felder in tl_content.
+ *
+ * @author    Frank Hoppe
+ * @license   LGPL-3.0-or-later
  */
 
 /**
- * Legends
+ * Felder
  */
-$GLOBALS['TL_LANG']['tl_content']['article_list_childrens'] = array('Unterseiten automatisch verlinken', 'Alle Unterseiten der aktuellen Seite automatisch mit einbeziehen.');
-$GLOBALS['TL_LANG']['tl_content']['article_list_recursive'] = array('Seiten rekursiv verlinken', 'Alle Unterseiten ausgewählter Seiten automatisch mit einbeziehen.');
-$GLOBALS['TL_LANG']['tl_content']['article_list_hidden'] = array('Im Menü versteckte Seiten einbeziehen', 'Auch Seiten automatisch mit auflisten, die im Menü versteckt sind.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_pages'] = array('Manuelle Seitenauswahl', 'Seiten, die immer aufgelistet werden. Von Hand ausgewählte Seiten erscheinen auch dann, wenn sie im Menü versteckt sind.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_childrens'] = array('Unterseiten automatisch verlinken', 'Die direkten Unterseiten der Seite einbeziehen, auf der dieses Element steht.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_recursive'] = array('Seiten rekursiv verlinken', 'Von jeder einbezogenen Seite auch alle tieferen Ebenen auflisten.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_hidden'] = array('Im Menü versteckte Seiten einbeziehen', 'Auch Seiten auflisten, die in der Navigation ausgeblendet sind.');
 
-$GLOBALS['TL_LANG']['tl_content']['article_list_pages'] = array('Manuelle Seitenauswahl', 'Seiten mit aufzulistenden Artikeln.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_page_link'] = array('Seiten statt einzelner Artikel verlinken', 'Enthält eine Seite nur einen einzigen Artikel, direkt auf die Seite verweisen.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_page_headline'] = array('Seitenüberschriften', 'Über den Artikeln jeder Seite eine Überschrift ausgeben.');
+$GLOBALS['TL_LANG']['tl_content']['article_list_teaser'] = array('Artikelteaser', 'Den Teasertext der Artikel mit ausgeben.');
 
-$GLOBALS['TL_LANG']['tl_content']['article_list_page_link'] = array('Seiten statt einzelnen Artikel verlinken', 'Bei nur einem Artikel in der Seitenstruktur die Seite direkt anstatt des Artikels verlinken.');
-$GLOBALS['TL_LANG']['tl_content']['article_list_page_headline'] = array('Seitenüberschriften', 'Für jede Seite der Seitenstruktur eine Überschrift über den Artikeln anzeigen.');
-$GLOBALS['TL_LANG']['tl_content']['article_list_teaser'] = array('Artikelteaser', 'Artikelteaser der Artikel ausgeben.');
-
+/**
+ * Legenden
+ */
 $GLOBALS['TL_LANG']['tl_content']['article_list_legend'] = 'Seitenauswahl';
 $GLOBALS['TL_LANG']['tl_content']['article_list_options_legend'] = 'Artikeloptionen';

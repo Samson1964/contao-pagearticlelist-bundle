@@ -1,9 +1,15 @@
+# Dienste der Seiten- und Artikellisten
+#
+# Die Erweiterung besteht ausschließlich aus zwei klassischen Inhaltselementen,
+# die Contao über $GLOBALS['TL_CTE'] selbst instanziiert — Dienste braucht sie
+# dafür keine.
+#
+# Hinweis: Hier stand bis Version 0.1.2 ein _instanceof-Block für
+# FrameworkAwareInterface und ContainerAwareInterface. Keine Klasse dieser
+# Erweiterung setzt die beiden um, und ContainerAwareInterface gibt es seit
+# Symfony 7 nicht mehr — der Block verhinderte damit den Containerbau unter
+# Contao 5.
 services:
-    _instanceof:
-        Contao\CoreBundle\Framework\FrameworkAwareInterface:
-            calls:
-                - ["setFramework", ["@contao.framework"]]
-
-        Symfony\Component\DependencyInjection\ContainerAwareInterface:
-            calls:
-                - ["setContainer", ["@service_container"]]
+    _defaults:
+        autowire: true
+        autoconfigure: true

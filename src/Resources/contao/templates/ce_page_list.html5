@@ -2,17 +2,16 @@
 
 <?php $this->block('content'); ?>
 
-<nav class="<?php echo $this->class; ?> block"<?php echo $this->cssID; ?><?php if ($this->style): ?> style="<?php echo $this->style; ?>"<?php endif; ?>>
+<nav class="<?= $this->class ?> block"<?= $this->cssID ?><?php if ($this->style): ?> style="<?= $this->style ?>"<?php endif; ?>>
 
+<?php if (!empty($this->pages)): ?>
 <ul>
 <?php foreach ($this->pages as $page): ?>
-<?php if ($page['protected']): ?>
-	<li class="<?php echo $page['class']; ?>"><?php echo $page['title']; ?></li>
-<?php else: ?>
-	<li class="<?php echo $page['class']; ?>"><a href="<?php echo $page['link']; ?>"><?php echo $page['title']; ?></a></li>
-<?php endif; ?>
+	<li class="<?= $page['class'] ?>"><?php if ($page['link']): ?><a href="<?= $page['link'] ?>" title="<?= $page['name'] ?>"><?= $page['title'] ?></a><?php else: ?><span><?= $page['title'] ?></span><?php endif; ?></li>
 <?php endforeach; ?>
 </ul>
+<?php endif; ?>
+
 </nav>
 
 <?php $this->endblock(); ?>

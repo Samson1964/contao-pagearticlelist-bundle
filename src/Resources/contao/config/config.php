@@ -1,20 +1,24 @@
 <?php
 
-/**
- * Contao Open Source CMS
- *
- * Copyright (C) 2005-2013 Leo Feyer
- *
- * @package   fen
- * @author    Frank Hoppe
- * @license   GNU/LGPL
- * @copyright Frank Hoppe 2013
- */
+declare(strict_types=1);
 
 /**
- * -------------------------------------------------------------------------
- * CONTENT ELEMENTS
- * -------------------------------------------------------------------------
+ * Seiten- und Artikellisten für Contao Open Source CMS
+ *
+ * @author    Frank Hoppe
+ * @license   LGPL-3.0-or-later
  */
-$GLOBALS['TL_CTE']['includes']['page_list'] = 'Schachbulle\ContaoPagearticlelistBundle\ContentElements\Pagelist';
-$GLOBALS['TL_CTE']['includes']['article_list'] = 'Schachbulle\ContaoPagearticlelistBundle\ContentElements\Articlelist';
+
+use Schachbulle\ContaoPagearticlelistBundle\ContentElements\Articlelist;
+use Schachbulle\ContaoPagearticlelistBundle\ContentElements\Pagelist;
+
+/**
+ * Inhaltselemente
+ *
+ * Die Anmeldung läuft bewusst über $GLOBALS['TL_CTE'] und nicht über das
+ * PHP-Attribut #[AsContentElement]: Das Attribut gibt es erst ab Contao 5, die
+ * Erweiterung soll aber auch unter Contao 4.13 laufen. Contao 5 unterstützt die
+ * Anmeldung über TL_CTE weiterhin.
+ */
+$GLOBALS['TL_CTE']['includes']['page_list'] = Pagelist::class;
+$GLOBALS['TL_CTE']['includes']['article_list'] = Articlelist::class;

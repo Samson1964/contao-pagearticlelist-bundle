@@ -5,8 +5,11 @@
 de:
     title: Seiten- und Artikellisten
     description: >
-        Inhaltselement für Seiten- und Artikellisten. Fork von srhinow/ce_article_list, das ab Contao 4.9 nicht mehr lief.
+        Zwei Inhaltselemente, die Seiten beziehungsweise die Artikel ausgewählter
+        Seiten auflisten — von Hand ausgewählt, als Unterseiten der aktuellen Seite
+        oder als kompletter Seitenbaum. Fork von srhinow/ce_article_list.
     keywords:
         - Artikel
         - Seiten
         - Liste
+        - Seitenbaum

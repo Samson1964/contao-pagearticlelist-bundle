@@ -1,191 +1,104 @@
 <?php
 
+declare(strict_types=1);
+
 /**
- * Contao Open Source CMS
+ * Seiten- und Artikellisten für Contao Open Source CMS
  *
- * Copyright (C) 2005-2013 Leo Feyer
- *
- * @package   chesstable
- * Version    1.0.0
  * @author    Frank Hoppe
- * @license   GNU/LGPL
- * @copyright Frank Hoppe 2013
+ * @license   LGPL-3.0-or-later
  */
 
 namespace Schachbulle\ContaoPagearticlelistBundle\ContentElements;
 
-class Pagelist extends \ContentElement
-{
+use Contao\StringUtil;
 
+/**
+ * Inhaltselement "Seitenliste".
+ *
+ * Gibt eine Liste ausgewählter Seiten aus — wahlweise nur die von Hand
+ * ausgewählten, zusätzlich die direkten Unterseiten der aktuellen Seite oder
+ * ganze Seitenbäume. Geschützte Seiten erscheinen ohne Verweis, damit die
+ * Struktur sichtbar bleibt, der Inhalt aber nicht erreichbar ist.
+ */
+class Pagelist extends AbstractListElement
+{
 	/**
-	 * Template
+	 * Name des Frontend-Templates
 	 * @var string
 	 */
 	protected $strTemplate = 'ce_page_list';
-	protected $idLevels = array();
 
 	/**
-	 * Generate the module
+	 * Stellt die Seitenliste zusammen und übergibt sie an das Template.
+	 *
+	 * Die Methode wird von Contao aufgerufen, nachdem $this->Template angelegt
+	 * wurde. Sie liefert nichts zurück, sondern füllt die Template-Variable
+	 * "pages" mit einer Liste aus Namen, Titel, Adresse, Ebene und CSS-Klasse.
+	 * Ist nichts konfiguriert oder trifft keine Seite die Bedingungen, bleibt die
+	 * Liste leer und das Template gibt lediglich das leere Grundgerüst aus.
+	 *
+	 * Anders als in der Ursprungserweiterung werden hier weder $this->Template->id
+	 * noch $this->Template->class gesetzt: Contao überschreibt beide nach dem
+	 * Aufruf von compile() ohnehin wieder mit den eigenen Werten.
 	 */
-	protected function compile()
+	protected function compile(): void
 	{
-		global $objPage;
-		$query = '';
-		$pages = array();
+		$intCurrentPageId = $this->getCurrentPageId();
+		$arrSelectedIds = $this->getSelectedPageIds();
+		$arrPageIds = $this->collectPageIds($intCurrentPageId);
 
-		$selectedPages = deserialize($this->article_list_pages);
+		$objPages = $this->findPages($arrPageIds);
 
-		// Array mit aufzulistenden Seiten erstellen
-		if(is_array($selectedPages))
+		if (null === $objPages)
 		{
-			$articleListPages = $selectedPages;
-		}
-		elseif (!empty($selectedPages))
-		{
-			$articleListPages = array($selectedPages);
-		}
-		else
-		{
-			$articleListPages = array();
+			$this->Template->pages = array();
+
+			return;
 		}
 
-		if(TL_MODE == 'FE')
+		$arrPages = array();
+
+		foreach ($objPages as $objPage)
 		{
-			// Frontend-Aufruf: ID der aktuellen Seite speichern
-			$pageId = $objPage->id;
-		}
-		else
-		{
-			// Backend-Aufruf: Artikel-Objekt des Inhaltselements laden, um die Seiten-ID zu ermitteln
-			$objArticle = \ArticleModel::findByIdOrAlias($this->pid);
-			if($objArticle)
+			if (!$this->isPageVisible($objPage, $arrSelectedIds))
 			{
-				$pageId = $objArticle->pid;
+				continue;
 			}
-			else
+
+			$intId = (int) $objPage->id;
+			$blnProtected = $this->isProtected($objPage->protected, $objPage->groups);
+			$blnActive = $intCurrentPageId === $intId;
+			$intLevel = $this->arrLevels[$intId] ?? 0;
+
+			$arrClasses = array('level' . $intLevel);
+
+			if ($blnActive)
 			{
-				$pageId = false;
+				$arrClasses[] = 'active';
 			}
-		}
 
-		if($this->article_list_childrens)
-		{
-			// Unterseiten der aktuellen Seite sollen automatisch verlinkt werden
-			array_splice($articleListPages, 0, 0, $this->getChildPages($pageId, false));
-		}
-
-		if($this->article_list_recursive)
-		{
-			// Seitenbäume sollen rekursiv einbezogen werden
-			for($i = count($articleListPages)-1; $i >= 0; $i--)
+			if ($blnProtected)
 			{
-				array_splice($articleListPages, $i+1, 0, $this->getChildPages($articleListPages[$i], true, @$this->idLevels[$articleListPages[$i]]+1));
+				$arrClasses[] = 'protected';
 			}
+
+			$arrPages[] = array
+			(
+				'id'        => $intId,
+				// Die Titel werden hier maskiert und im Template unmaskiert
+				// ausgegeben — dasselbe Vorgehen wie in den Navigationsmodulen
+				// des Contao-Kerns.
+				'name'      => StringUtil::specialchars($objPage->title),
+				'title'     => StringUtil::specialchars($objPage->pageTitle ?: $objPage->title),
+				'link'      => $blnProtected ? '' : $this->generatePageUrl($objPage),
+				'protected' => $blnProtected,
+				'level'     => $intLevel,
+				'active'    => $blnActive,
+				'class'     => implode(' ', $arrClasses),
+			);
 		}
 
-		if(count($articleListPages))
-		{
-			$objPages = \Database::getInstance()->prepare("SELECT * FROM tl_page WHERE ".(!$this->Input->cookie('FE_PREVIEW') ? "`published`='1' AND " : "") . "id IN (" . implode(',', $articleListPages) . ") ORDER BY sorting")
-			                                    ->execute();
-
-			if($objPages->numRows > 0)
-			{
-				$this->import('FrontendUser', 'User');
-
-				while ($objPages->next())
-				{
-					if ($this->article_list_hidden || ($objPages->hide != '1') || in_array($objPages->id, $selectedPages))
-					{
-						$isProtected = false;
-
-						// Protected element
-						if (!BE_USER_LOGGED_IN && $objPages->protected)
-						{
-							if (!FE_USER_LOGGED_IN)
-							{
-								$isProtected = true;
-							}
-							else
-							{
-								$groups = deserialize($objPages->groups);
-
-								if (!is_array($groups) || empty($groups) || !count(array_intersect($groups, $this->User->groups)))
-								{
-									$isProtected = true;
-								}
-							}
-						}
-
-						$level = (isset($this->idLevels[$objPages->id]) ? $this->idLevels[$objPages->id] : 0);
-
-						$pages[] = array
-						(
-							'name'			=> $objPages->title,
-							'title'			=> ($objPages->pageTitle != '' ? $objPages->pageTitle : $objPages->title),
-							'link'			=> \PageModel::findByPk($objPages->id)->getFrontendUrl(),
-							'protected'		=> $isProtected,
-							'level'			=> $level,
-							'active'		=> ($pageId == $objPages->id),
-							'class'			=> 'level'.$level.' '.($pageId == $objPages->id ? ' active'.($isProtected ? ' protected' : '') : ($isProtected ? 'protected' : '')),
-							'sort'			=> (array_search($objPages->id, $articleListPages) !== FALSE ? array_search($objPages->id, $articleListPages) + 9000000 : $objPages->sorting)
-						);
-					}
-				}
-			}
-		}
-		elseif (TL_MODE == 'FE')
-		{
-			$this->log(sprintf('No pages for ID %d (%s) found.', $objPage->id, $objPage->pageTitle), 'PageList', TL_ERROR);
-		}
-
-		if((count($pages) > 0) && (count($articleListPages) > 0))
-		{
-			usort($pages, array($this, 'pageSort'));
-		}
-
-		$this->Template->id = $this->id;
-		$this->Template->class = 'ce_page_list';
-		$this->Template->pages = $pages;
-
-		return;
-
+		$this->Template->pages = $this->sortByPageOrder($arrPages, $arrPageIds);
 	}
-
-	/**
-	 * Helper function for usort
-	 * @param $a
-	 * @param $b
-	 * @return int
-	 */
-	protected function pageSort($a, $b)
-	{
-		if ($a['sort'] == $b['sort']) {
-		    return 0;
-		}
-		return ($a['sort'] < $b['sort']) ? -1 : 1;
-	}
-
-	/**
-	 * Ruft alle untergeordneten Seiten ab, wenn article_list_recursive = true ist
-	 */
-	protected function getChildPages($pageId, $recursive = true, $level=0)
-	{
-		$pageArray = array();
-
-		$objPages = \Database::getInstance()->prepare("SELECT id FROM tl_page WHERE pid=? AND type=?".(!$this->Input->cookie('FE_PREVIEW') ? " AND `published`='1' " : "")." ORDER BY sorting")
-		                                    ->execute($pageId, 'regular');
-
-		while($objPages->next())
-		{
-			$pageArray[] = $objPages->id;
-			$this->idLevels[$objPages->id] = $level;
-			if ($recursive)
-			{
-				$pageArray = array_merge($pageArray, $this->getChildPages($objPages->id, $recursive, $level+1));
-			}
-		}
-
-		return $pageArray;
-	}
-
 }
