@@ -3,5 +3,8 @@
 /vendor/
 /.DAV
 
+# Private Arbeitsnotiz, nicht Teil der Erweiterung
+/TODO.md
+
 # PhpUnit
 /phpunit.xml
