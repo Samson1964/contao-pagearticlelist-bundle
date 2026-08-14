@@ -55,9 +55,13 @@ abstract class AbstractListElement extends ContentElement
 	 * des Arrays und nicht die Sortierung aus der Datenbank — nur so stehen die
 	 * Unterseiten direkt hinter ihrer Elternseite:
 	 *
-	 * 1. Die im Backend manuell ausgewählten Seiten bilden den Grundstock.
+	 * 1. Die im Backend manuell ausgewählten Seiten (Ebene 0) bilden den
+	 *    Grundstock und stehen an erster Stelle.
 	 * 2. Ist "Unterseiten automatisch verlinken" gesetzt, werden die direkten
-	 *    Unterseiten der aktuellen Seite vorangestellt.
+	 *    Unterseiten der aktuellen Seite dahinter angehängt. Bis Version 1.0.0
+	 *    standen sie versehentlich VOR der manuellen Auswahl — dadurch tauchte
+	 *    die eigentliche Wurzel der Liste am Ende auf statt am Anfang, obwohl
+	 *    von ihr aus alles andere nach unten verzweigt.
 	 * 3. Ist "Seiten rekursiv verlinken" gesetzt, wird hinter jeder bereits
 	 *    gesammelten Seite deren kompletter Unterbaum eingefügt. Die Schleife
 	 *    läuft von hinten nach vorn, damit das Einfügen die noch nicht
@@ -74,10 +78,11 @@ abstract class AbstractListElement extends ContentElement
 	{
 		$arrPageIds = $this->getSelectedPageIds();
 
-		// Direkte Unterseiten der aktuellen Seite voranstellen
+		// Direkte Unterseiten der aktuellen Seite anhängen statt voranzustellen —
+		// sonst landet die manuell ausgewählte Wurzelseite hinter ihnen.
 		if ($this->article_list_childrens && null !== $intCurrentPageId)
 		{
-			array_splice($arrPageIds, 0, 0, $this->getChildPages($intCurrentPageId, false));
+			$arrPageIds = array_merge($arrPageIds, $this->getChildPages($intCurrentPageId, false));
 		}
 
 		// Unterbäume der bereits gesammelten Seiten hinter der jeweiligen Seite einfügen
@@ -438,6 +443,30 @@ abstract class AbstractListElement extends ContentElement
 		}
 
 		return \in_array((int) $objPage->id, $arrSelectedIds, true);
+	}
+
+	/**
+	 * Entscheidet, ob eine manuell ausgewählte Seite selbst mit ausgegeben wird.
+	 *
+	 * Ist "Manuelle Seitenauswahl nicht anzeigen" gesetzt, dient eine von Hand
+	 * ausgewählte Seite nur noch als Ausgangspunkt für ihre Unterseiten — sie
+	 * selbst erscheint nicht als eigener Listeneintrag. Seiten, die nicht aus
+	 * der manuellen Auswahl stammen (etwa Unterseiten aus der Rekursion), sind
+	 * davon nie betroffen, unabhängig von dieser Einstellung.
+	 *
+	 * @param int            $intPageId      Zu prüfende Seiten-ID
+	 * @param array<int,int> $arrSelectedIds Die manuell ausgewählten Seiten-IDs
+	 *
+	 * @return bool true, wenn die Seite ausgegeben werden soll
+	 */
+	protected function isSelectionVisible(int $intPageId, array $arrSelectedIds): bool
+	{
+		if (!$this->article_list_selection_hidden)
+		{
+			return true;
+		}
+
+		return !\in_array($intPageId, $arrSelectedIds, true);
 	}
 
 	/**

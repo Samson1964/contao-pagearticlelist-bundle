@@ -11,18 +11,32 @@ Optionen für die Ausgabe der Artikel.
 
 ## Seitenauswahl
 
-Diese vier Einstellungen entscheiden gemeinsam, welche Seiten in der Liste
-landen. Sie greifen ineinander, deshalb hier zuerst die Einzelbedeutung und
-darunter die Kombinationen.
+Diese Einstellungen entscheiden gemeinsam, welche Seiten in der Liste landen
+und wie sie erscheinen. Sie greifen ineinander, deshalb hier zuerst die
+Einzelbedeutung und darunter die Kombinationen.
 
 ### Manuelle Seitenauswahl
 
-Die hier ausgewählten Seiten werden immer ausgegeben — auch dann, wenn sie in
+Die hier ausgewählten Seiten werden immer einbezogen — auch dann, wenn sie in
 der Navigation ausgeblendet sind. Eine bewusste Auswahl im Backend überstimmt
 die Ausblendung.
 
-Ohne weitere Häkchen ist das die vollständige Liste: genau diese Seiten,
-in der Reihenfolge der Auswahl.
+Diese Seiten bilden zugleich die **Wurzel der Liste**: Sie stehen an erster
+Stelle, ihr eigener Unterbaum (falls "Seiten rekursiv verlinken" aktiv ist)
+folgt direkt dahinter, bevor die nächste Quelle (etwa "Unterseiten automatisch
+verlinken") an die Reihe kommt.
+
+### Manuelle Seitenauswahl nicht anzeigen
+
+Die oben ausgewählten Seiten dienen dann nur noch als **Ausgangspunkt**: Sie
+selbst erscheinen nicht als eigener Eintrag, ihre Unterseiten aber schon —
+sofern "Seiten rekursiv verlinken" oder "Unterseiten automatisch verlinken"
+aktiv ist. Ohne eine dieser beiden Einstellungen bleibt die Liste in diesem
+Fall leer, weil dann nichts anderes übrig ist.
+
+Praktisch nützlich, um eine Seite auszuwählen, ohne die Seite selbst noch
+einmal in ihrer eigenen Liste zu verlinken — etwa auf der Startseite eines
+Bereichs, die dessen komplette Struktur anzeigen soll.
 
 ### Unterseiten automatisch verlinken
 
@@ -30,12 +44,16 @@ Bezieht die direkten Unterseiten **der Seite mit ein, auf der das Element
 steht**. Die Seite selbst erscheint nicht in der Liste. Wird eine Ausgabe für
 die aktuelle Seite nicht gewünscht, bleibt die Einstellung besser aus.
 
+Diese Seiten stehen **hinter** der manuellen Auswahl und deren Unterbaum, nicht
+davor — die Wurzel der Liste soll immer oben stehen, weil von ihr aus alles
+andere nach unten verzweigt.
+
 ### Seiten rekursiv verlinken
 
 Ergänzt zu jeder bereits eingesammelten Seite deren kompletten Unterbaum. Die
-Unterseiten stehen dabei direkt hinter ihrer Elternseite und bekommen über die
-CSS-Klasse `levelN` ihre Tiefe mit — `level0` für die oberste Ebene, `level1`
-für deren Kinder und so fort.
+Unterseiten stehen dabei direkt hinter ihrer Elternseite und werden — anders
+als bis Version 1.0.0 — als echte verschachtelte Liste ausgegeben, nicht nur
+optisch über eine CSS-Klasse eingerückt (siehe [Ausgabe im Frontend](frontend.md)).
 
 Die Einstellung wirkt nur auf Seiten, die schon in der Liste sind. Allein
 gesetzt bewirkt sie deshalb nichts.
@@ -46,6 +64,13 @@ Nimmt auch Seiten auf, die in der Navigation ausgeblendet sind. Ohne dieses
 Häkchen erscheinen ausgeblendete Seiten nur dann, wenn sie in der manuellen
 Seitenauswahl stehen.
 
+### Aktive Seite nicht verlinken
+
+Die Seite, auf der dieses Element steht (bei der Artikelliste zusätzlich der
+Artikel, in dem das Element selbst liegt), erscheint dann ohne Verweis — als
+reiner Text statt als Verweis auf sich selbst. Genau wie bei geschützten
+Seiten wird der Titel dazu in einem `<span>` statt in einem `<a>` ausgegeben.
+
 ### Zusammenspiel
 
 | Manuelle Auswahl | Unterseiten | Rekursiv | Ergebnis |
@@ -55,7 +80,7 @@ Seitenauswahl stehen.
 | – | – | ✓ | Keine Ausgabe |
 | – | ✓ | ✓ | Alle Unterseiten der aktuellen Seite, über alle Ebenen |
 | ✓ | – | – | Genau die ausgewählten Seiten |
-| ✓ | ✓ | – | Die ausgewählten Seiten und die direkten Unterseiten der aktuellen Seite |
+| ✓ | ✓ | – | Die ausgewählten Seiten, gefolgt von den direkten Unterseiten der aktuellen Seite |
 | ✓ | – | ✓ | Die ausgewählten Seiten samt ihrer kompletten Unterbäume |
 
 In allen Fällen gilt: Unveröffentlichte und zeitgesteuert abgeschaltete Seiten

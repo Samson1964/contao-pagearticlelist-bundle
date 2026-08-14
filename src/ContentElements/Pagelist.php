@@ -20,6 +20,10 @@ use Contao\StringUtil;
  * ausgewählten, zusätzlich die direkten Unterseiten der aktuellen Seite oder
  * ganze Seitenbäume. Geschützte Seiten erscheinen ohne Verweis, damit die
  * Struktur sichtbar bleibt, der Inhalt aber nicht erreichbar ist.
+ *
+ * Die Ausgabe ist ein echter Seitenbaum aus verschachtelten <ul>-Listen, wie
+ * ihn auch die Navigationsmodule des Contao-Kerns erzeugen — nicht eine flache
+ * Liste mit CSS-Klassen zur optischen Einrückung.
  */
 class Pagelist extends AbstractListElement
 {
@@ -34,9 +38,9 @@ class Pagelist extends AbstractListElement
 	 *
 	 * Die Methode wird von Contao aufgerufen, nachdem $this->Template angelegt
 	 * wurde. Sie liefert nichts zurück, sondern füllt die Template-Variable
-	 * "pages" mit einer Liste aus Namen, Titel, Adresse, Ebene und CSS-Klasse.
-	 * Ist nichts konfiguriert oder trifft keine Seite die Bedingungen, bleibt die
-	 * Liste leer und das Template gibt lediglich das leere Grundgerüst aus.
+	 * "pages" mit der fertigen, verschachtelten <ul>-Auszeichnung des
+	 * Seitenbaums — oder mit einer leeren Zeichenkette, wenn nichts konfiguriert
+	 * ist oder keine Seite die Bedingungen erfüllt.
 	 *
 	 * Anders als in der Ursprungserweiterung werden hier weder $this->Template->id
 	 * noch $this->Template->class gesetzt: Contao überschreibt beide nach dem
@@ -52,7 +56,7 @@ class Pagelist extends AbstractListElement
 
 		if (null === $objPages)
 		{
-			$this->Template->pages = array();
+			$this->Template->pages = '';
 
 			return;
 		}
@@ -61,17 +65,21 @@ class Pagelist extends AbstractListElement
 
 		foreach ($objPages as $objPage)
 		{
-			if (!$this->isPageVisible($objPage, $arrSelectedIds))
+			$intId = (int) $objPage->id;
+
+			if (!$this->isPageVisible($objPage, $arrSelectedIds) || !$this->isSelectionVisible($intId, $arrSelectedIds))
 			{
 				continue;
 			}
 
-			$intId = (int) $objPage->id;
 			$blnProtected = $this->isProtected($objPage->protected, $objPage->groups);
 			$blnActive = $intCurrentPageId === $intId;
-			$intLevel = $this->arrLevels[$intId] ?? 0;
 
-			$arrClasses = array('level' . $intLevel);
+			// Die aktive Seite bekommt auf Wunsch keinen Verweis, genau wie eine
+			// geschützte — beides gibt den Titel dann als <span> statt als <a> aus.
+			$blnLinkable = !$blnProtected && !($blnActive && $this->article_list_no_active_link);
+
+			$arrClasses = array();
 
 			if ($blnActive)
 			{
@@ -86,19 +94,133 @@ class Pagelist extends AbstractListElement
 			$arrPages[] = array
 			(
 				'id'        => $intId,
-				// Die Titel werden hier maskiert und im Template unmaskiert
+				'level'     => $this->arrLevels[$intId] ?? 0,
+				// Die Titel werden hier maskiert und in renderTree() unmaskiert
 				// ausgegeben — dasselbe Vorgehen wie in den Navigationsmodulen
 				// des Contao-Kerns.
 				'name'      => StringUtil::specialchars($objPage->title),
 				'title'     => StringUtil::specialchars($objPage->pageTitle ?: $objPage->title),
-				'link'      => $blnProtected ? '' : $this->generatePageUrl($objPage),
+				'link'      => $blnLinkable ? $this->generatePageUrl($objPage) : '',
 				'protected' => $blnProtected,
-				'level'     => $intLevel,
 				'active'    => $blnActive,
 				'class'     => implode(' ', $arrClasses),
 			);
 		}
 
-		$this->Template->pages = $this->sortByPageOrder($arrPages, $arrPageIds);
+		$arrPages = $this->sortByPageOrder($arrPages, $arrPageIds);
+
+		$this->Template->pages = $this->renderTree($this->buildTree($arrPages));
+	}
+
+	/**
+	 * Ordnet eine nach Ebenen sortierte flache Liste zu einem Seitenbaum an.
+	 *
+	 * Die Eingabe ist bereits in der richtigen Reihenfolge (siehe
+	 * AbstractListElement::collectPageIds()) — jede Seite steht unmittelbar vor
+	 * ihrem eigenen Unterbaum. Für die Verschachtelung genügt deshalb ein
+	 * Vergleich mit der zuletzt offenen Ebene; ein Stapel von Knoten hält fest,
+	 * wo das nächste Element einsortiert wird.
+	 *
+	 * Fehlt eine Zwischenseite — weil sie unveröffentlicht, im Menü versteckt
+	 * oder über "Manuelle Seitenauswahl nicht anzeigen" ausgeblendet ist —,
+	 * klafft eine Lücke in den Ebenennummern. Der Stapel schließt diese Lücke
+	 * von selbst: Jede Seite hängt sich unter die zuletzt verbliebene Seite mit
+	 * einer niedrigeren Ebene, unabhängig davon, wie groß der Sprung in der
+	 * ursprünglichen Ebenennummer war. Ohne diese Regel entstünde eine Kette
+	 * leerer Verschachtelungen ohne umschließendes Element.
+	 *
+	 * @param array<int,array<string,mixed>> $arrItems Aufbereitete Datensätze in
+	 *                                                 Ausgabereihenfolge, jeder
+	 *                                                 mit dem Schlüssel "level"
+	 *
+	 * @return array<int,object> Die Wurzelknoten des Baums. Jeder Knoten trägt
+	 *                           die übrigen Schlüssel von $arrItems als
+	 *                           Eigenschaft sowie "children" mit den gleich
+	 *                           aufgebauten Kindknoten
+	 */
+	protected function buildTree(array $arrItems): array
+	{
+		$arrRoots = array();
+		$arrStack = array();
+		$arrStackLevels = array();
+
+		foreach ($arrItems as $arrItem)
+		{
+			$intLevel = $arrItem['level'];
+			unset($arrItem['level']);
+
+			$objNode = (object) $arrItem;
+			$objNode->children = array();
+
+			while (!empty($arrStackLevels) && end($arrStackLevels) >= $intLevel)
+			{
+				array_pop($arrStack);
+				array_pop($arrStackLevels);
+			}
+
+			if (empty($arrStack))
+			{
+				$arrRoots[] = $objNode;
+			}
+			else
+			{
+				end($arrStack)->children[] = $objNode;
+			}
+
+			$arrStack[] = $objNode;
+			$arrStackLevels[] = $intLevel;
+		}
+
+		return $arrRoots;
+	}
+
+	/**
+	 * Rendert einen Seitenbaum als verschachtelte <ul>-Struktur.
+	 *
+	 * Die umschließende <ul> jeder Ebene trägt die Klasse "level_N", genau wie
+	 * bei den Navigationsmodulen des Contao-Kerns.
+	 *
+	 * Die Methode baut die Auszeichnung selbst zusammen statt sie dem Template
+	 * zu überlassen: Eine wechselnde Verschachtelungstiefe lässt sich in einer
+	 * einzelnen, nicht rekursiven .html5-Datei nicht sauber abbilden, ohne
+	 * schließende Tags über mehrere Schleifendurchläufe hinweg offen zu halten.
+	 * Der Contao-Kern löst dasselbe Problem in Module::renderNavigation() auf
+	 * demselben Weg — dort entsteht ebenfalls vorgefertigtes HTML je Ebene, das
+	 * das Template nur noch ausgibt.
+	 *
+	 * @param array<int,object> $arrNodes Baumknoten dieser Ebene, wie von
+	 *                                   buildTree() geliefert
+	 * @param int                $intLevel Verschachtelungstiefe der aktuellen
+	 *                                     Ebene, beginnend bei 1
+	 *
+	 * @return string Die fertige <ul>-Struktur dieser Ebene, oder eine leere
+	 *                Zeichenkette wenn $arrNodes leer ist
+	 */
+	protected function renderTree(array $arrNodes, int $intLevel = 1): string
+	{
+		if (empty($arrNodes))
+		{
+			return '';
+		}
+
+		$strItems = '';
+
+		foreach ($arrNodes as $objNode)
+		{
+			if ($objNode->link)
+			{
+				$strLink = '<a href="' . StringUtil::specialcharsUrl($objNode->link) . '" title="' . $objNode->name . '">' . $objNode->title . '</a>';
+			}
+			else
+			{
+				$strLink = '<span>' . $objNode->title . '</span>';
+			}
+
+			$strClass = $objNode->class ? ' class="' . $objNode->class . '"' : '';
+
+			$strItems .= '<li' . $strClass . '>' . $strLink . $this->renderTree($objNode->children, $intLevel + 1) . '</li>';
+		}
+
+		return '<ul class="level_' . $intLevel . '">' . $strItems . '</ul>';
 	}
 }

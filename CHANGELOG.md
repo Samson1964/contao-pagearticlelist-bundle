@@ -1,5 +1,22 @@
 # Seiten- und Artikellisten Changelog
 
+## Version 1.1.0 (2026-08-14)
+
+* Fix: Bei gleichzeitig aktiver manueller Seitenauswahl und "Unterseiten
+  automatisch verlinken" erschien die manuell ausgewählte Wurzelseite hinter
+  statt vor den Unterseiten der aktuellen Seite — `collectPageIds()` hat die
+  Unterseiten der aktuellen Seite versehentlich vorangestellt statt angehängt
+* Add: Neues Häkchen "Manuelle Seitenauswahl nicht anzeigen" — die ausgewählten
+  Seiten dienen dann nur noch als Ausgangspunkt für ihre Unterseiten, ohne
+  selbst als Listeneintrag zu erscheinen
+* Add: Neues Häkchen "Aktive Seite nicht verlinken" — die Seite, auf der das
+  Element steht (bei der Artikelliste zusätzlich der Artikel, in dem es selbst
+  liegt), erscheint dann als reiner Text statt als Verweis auf sich selbst
+* Change: Die Seitenliste gibt einen echten, verschachtelten Seitenbaum aus
+  (`<ul>` in `<ul>`, mit der Klasse `level_N` je Ebene) statt einer flachen
+  Liste mit der CSS-Klasse `levelN` zur optischen Einrückung — CSS, das gezielt
+  `levelN` angesprochen hat, muss auf die neue Struktur umgestellt werden
+
 ## Version 1.0.0 (2026-08-02)
 
 Portierung auf PHP 8.3 und Contao 4.13/5. Die Erweiterung enthielt noch

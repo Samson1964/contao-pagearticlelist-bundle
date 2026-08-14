@@ -15,9 +15,9 @@ declare(strict_types=1);
 /**
  * Paletten
  */
-$GLOBALS['TL_DCA']['tl_content']['palettes']['page_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_childrens,article_list_recursive,article_list_hidden;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space';
+$GLOBALS['TL_DCA']['tl_content']['palettes']['page_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_selection_hidden,article_list_childrens,article_list_recursive,article_list_hidden,article_list_no_active_link;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space';
 
-$GLOBALS['TL_DCA']['tl_content']['palettes']['article_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_childrens,article_list_recursive,article_list_hidden;{article_list_options_legend},article_list_page_link,article_list_page_headline,article_list_teaser;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space';
+$GLOBALS['TL_DCA']['tl_content']['palettes']['article_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_selection_hidden,article_list_childrens,article_list_recursive,article_list_hidden,article_list_no_active_link;{article_list_options_legend},article_list_page_link,article_list_page_headline,article_list_teaser;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space';
 
 /**
  * Felder
@@ -38,6 +38,15 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['article_list_pages'] = array
 	// erwartet ein serialisiertes Array — der Vorgabewert hat neu angelegten
 	// Elementen also die Zeichenkette '1' untergeschoben.
 	'sql'       => "blob NULL"
+);
+
+$GLOBALS['TL_DCA']['tl_content']['fields']['article_list_selection_hidden'] = array
+(
+	'label'     => &$GLOBALS['TL_LANG']['tl_content']['article_list_selection_hidden'],
+	'exclude'   => true,
+	'inputType' => 'checkbox',
+	'eval'      => array('tl_class' => 'w50'),
+	'sql'       => "char(1) NOT NULL default ''"
 );
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['article_list_childrens'] = array
@@ -67,6 +76,15 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['article_list_hidden'] = array
 	'inputType' => 'checkbox',
 	'eval'      => array('tl_class' => 'w50'),
 	'sql'       => "char(1) NOT NULL default '1'"
+);
+
+$GLOBALS['TL_DCA']['tl_content']['fields']['article_list_no_active_link'] = array
+(
+	'label'     => &$GLOBALS['TL_LANG']['tl_content']['article_list_no_active_link'],
+	'exclude'   => true,
+	'inputType' => 'checkbox',
+	'eval'      => array('tl_class' => 'w50'),
+	'sql'       => "char(1) NOT NULL default ''"
 );
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['article_list_page_link'] = array

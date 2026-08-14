@@ -68,21 +68,26 @@ class Articlelist extends AbstractListElement
 
 		foreach ($objPages as $objPage)
 		{
-			if (!$this->isPageVisible($objPage, $arrSelectedIds))
+			$intId = (int) $objPage->id;
+
+			if (!$this->isPageVisible($objPage, $arrSelectedIds) || !$this->isSelectionVisible($intId, $arrSelectedIds))
 			{
 				continue;
 			}
 
-			$objArticles = $this->findArticles((int) $objPage->id);
+			$objArticles = $this->findArticles($intId);
 
 			if (null === $objArticles)
 			{
 				continue;
 			}
 
-			$intId = (int) $objPage->id;
 			$blnProtected = $this->isProtected($objPage->protected, $objPage->groups);
 			$blnActive = $intCurrentPageId === $intId;
+
+			// Die aktive Seite bekommt auf Wunsch keinen Verweis, genau wie eine
+			// geschützte — beides gibt den Titel dann als <span> statt als <a> aus.
+			$blnLinkable = !$blnProtected && !($blnActive && $this->article_list_no_active_link);
 
 			$arrClasses = array();
 
@@ -101,7 +106,7 @@ class Articlelist extends AbstractListElement
 				'id'        => $intId,
 				'name'      => StringUtil::specialchars($objPage->title),
 				'title'     => StringUtil::specialchars($objPage->pageTitle ?: $objPage->title),
-				'link'      => $blnProtected ? '' : $this->generatePageUrl($objPage),
+				'link'      => $blnLinkable ? $this->generatePageUrl($objPage) : '',
 				'protected' => $blnProtected,
 				'articles'  => $this->compileArticles($objArticles, $objPage, $blnProtected),
 				'level'     => $this->arrLevels[$intId] ?? 0,
@@ -146,6 +151,9 @@ class Articlelist extends AbstractListElement
 			// liegt — damit lässt sich der eigene Artikel in der Liste markieren.
 			$blnActive = (int) $this->pid === $intId;
 
+			// Der eigene Artikel bekommt auf Wunsch keinen Verweis auf sich selbst.
+			$blnLinkable = !$blnProtected && !($blnActive && $this->article_list_no_active_link);
+
 			$arrClasses = array();
 
 			if ($blnActive)
@@ -171,7 +179,7 @@ class Articlelist extends AbstractListElement
 				'teaser'       => $this->article_list_teaser ? ($objArticle->teaser ?? '') : '',
 				'teaser_cssID' => StringUtil::specialchars((string) ($arrTeaserCssID[0] ?? '')),
 				'teaser_class' => StringUtil::specialchars((string) ($arrTeaserCssID[1] ?? '')),
-				'link'         => $blnProtected ? '' : $this->generateArticleUrl($objArticle, $objPage, $blnLinkPage),
+				'link'         => $blnLinkable ? $this->generateArticleUrl($objArticle, $objPage, $blnLinkPage) : '',
 				'protected'    => $blnProtected,
 			);
 		}
