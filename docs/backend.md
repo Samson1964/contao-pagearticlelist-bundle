@@ -108,6 +108,16 @@ eine Stufe unter der Überschrift des Inhaltselements: Steht das Element auf
 Gibt den Teasertext der Artikel mit aus. Der Teaser ist redaktionelles HTML und
 wird unverändert übernommen.
 
+## Anzeigedauer und Sichtbarkeit
+
+Wie jedes Contao-Inhaltselement lassen sich beide Elemente über **Element
+ausblenden** sowie **Element anzeigen von/bis** zeitlich steuern — der
+Abschnitt steht unter den erweiterten Einstellungen am Ende des Bearbeiten-
+Formulars. Er wirkt auf das Element selbst (ob die Seiten- bzw. Artikelliste
+überhaupt erscheint), nicht auf die darin aufgelisteten Seiten oder Artikel —
+für deren eigene Zeitsteuerung siehe den Hinweis zu `start`/`stop` weiter
+unten in [Technischer Aufbau](technik.md).
+
 ## Geschützte Seiten und Artikel
 
 Geschützte Seiten und Artikel erscheinen in der Liste, aber ohne Verweis — die

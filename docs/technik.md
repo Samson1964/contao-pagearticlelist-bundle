@@ -128,6 +128,18 @@ Zwei Häkchen wirken unabhängig von der Ebenen-Logik:
   bzw. der aktive Artikel wird dann als `<span>` statt als `<a>` ausgegeben,
   ohne dass das Template etwas Neues wissen muss.
 
+## Anzeigedauer im Backend
+
+Der Abschnitt `{invisible_legend:hide},invisible,start,stop` steht in jeder
+Standardpalette des Contao-Kerns, hat aber bis Version 1.1.0 in den eigenen
+Paletten gefehlt. Die Felder `invisible`, `start` und `stop` gehören zur
+Basistabelle `tl_content` und sind bereits vom Kern definiert;
+`ContentElement::isHidden()` wertet sie unabhängig von der verwendeten Palette
+aus. Ohne den Abschnitt griff die Zeitsteuerung also technisch schon, ließ
+sich im Backend aber nicht einsehen oder ändern — ein Element, das etwa über
+eine Datenübernahme mit `invisible = 1` oder einem abgelaufenen `stop` endete,
+blieb ohne erkennbaren Grund leer.
+
 ## Datenbankfelder
 
 Alle Felder liegen in `tl_content`:

@@ -1,5 +1,14 @@
 # Seiten- und Artikellisten Changelog
 
+## Version 1.1.1 (2026-08-15)
+
+* Fix: Der Abschnitt "Element ausblenden" / "Element anzeigen von/bis" fehlte
+  in beiden Paletten, obwohl die zugrundeliegenden Felder (`invisible`,
+  `start`, `stop`) zur Basistabelle `tl_content` gehören und von
+  `ContentElement::isHidden()` unabhängig von der Palette ausgewertet werden —
+  die Zeitsteuerung griff also bereits, ließ sich im Backend aber weder
+  einsehen noch ändern
+
 ## Version 1.1.0 (2026-08-14)
 
 * Fix: Bei gleichzeitig aktiver manueller Seitenauswahl und "Unterseiten

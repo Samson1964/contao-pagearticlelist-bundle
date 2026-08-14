@@ -14,10 +14,18 @@ declare(strict_types=1);
 
 /**
  * Paletten
+ *
+ * Der Abschnitt {invisible_legend:hide} mit invisible, start und stop steht in
+ * jeder Standardpalette des Contao-Kerns (z. B. tl_content['palettes']['text']),
+ * hat aber bis Version 1.1.0 in den eigenen Paletten gefehlt. Die Felder selbst
+ * gehören zur Basistabelle tl_content und sind bereits vom Kern definiert;
+ * ContentElement::isHidden() wertet sie unabhängig von der Palette aus. Ohne
+ * den Abschnitt ließ sich die Anzeigedauer eines Elements also nicht über das
+ * Backend steuern, obwohl sie technisch schon griff.
  */
-$GLOBALS['TL_DCA']['tl_content']['palettes']['page_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_selection_hidden,article_list_childrens,article_list_recursive,article_list_hidden,article_list_no_active_link;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space';
+$GLOBALS['TL_DCA']['tl_content']['palettes']['page_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_selection_hidden,article_list_childrens,article_list_recursive,article_list_hidden,article_list_no_active_link;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space;{invisible_legend:hide},invisible,start,stop';
 
-$GLOBALS['TL_DCA']['tl_content']['palettes']['article_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_selection_hidden,article_list_childrens,article_list_recursive,article_list_hidden,article_list_no_active_link;{article_list_options_legend},article_list_page_link,article_list_page_headline,article_list_teaser;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space';
+$GLOBALS['TL_DCA']['tl_content']['palettes']['article_list'] = '{type_legend},type,headline;{article_list_legend},article_list_pages,article_list_selection_hidden,article_list_childrens,article_list_recursive,article_list_hidden,article_list_no_active_link;{article_list_options_legend},article_list_page_link,article_list_page_headline,article_list_teaser;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},cssID,space;{invisible_legend:hide},invisible,start,stop';
 
 /**
  * Felder
