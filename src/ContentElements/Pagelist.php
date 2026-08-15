@@ -87,10 +87,15 @@ class Pagelist extends AbstractListElement
 			(
 				'id'        => $intId,
 				'level'     => $this->arrLevels[$intId] ?? 0,
-				// Die Titel werden hier maskiert und in renderTree() unmaskiert
+				// Der Titel wird hier maskiert und in renderTree() unmaskiert
 				// ausgegeben — dasselbe Vorgehen wie in den Navigationsmodulen
 				// des Contao-Kerns.
-				'name'      => StringUtil::specialchars($objPage->title),
+				//
+				// Als Verweistext dient der Seitentitel mit dem Seitennamen als
+				// Rückfallwert. Der Contao-Kern nimmt an dieser Stelle immer den
+				// Seitennamen; das bleibt hier bewusst anders, weil es das
+				// Verhalten seit der ersten Fassung ist und nicht stillschweigend
+				// wechseln soll.
 				'title'     => StringUtil::specialchars($objPage->pageTitle ?: $objPage->title),
 				'link'      => $blnLinkable ? $this->generatePageUrl($objPage) : '',
 				'protected' => $blnProtected,
@@ -168,20 +173,24 @@ class Pagelist extends AbstractListElement
 	/**
 	 * Rendert einen Seitenbaum als verschachtelte <ul>-Struktur.
 	 *
-	 * Die Auszeichnung folgt der Navigation und der Sitemap des Contao-Kerns
-	 * (siehe dessen Template navigation/nav_default.html5):
+	 * Die Auszeichnung folgt der Sitemap von Contao 5 (deren Twig-Vorlage
+	 * nav_default.html.twig), nachgemessen an einer laufenden 5.7-Installation:
 	 *
 	 * * Die <ul> jeder Ebene trägt die Klasse "level_N", beginnend bei 1.
 	 * * Ein Eintrag mit Unterebene bekommt die Klasse "submenu" und am
-	 *   Verweiselement zusätzlich aria-haspopup="true".
+	 *   Verweiselement zusätzlich aria-haspopup.
 	 * * Die Klassen stehen sowohl am <li> als auch am Verweiselement, weil sich
 	 *   in CSS je nach Zusammenspiel mit dem Theme mal das eine, mal das andere
 	 *   besser ansprechen lässt — auch das macht der Kern so.
-	 * * Der aktive Eintrag bekommt aria-current="page".
+	 * * Der aktive Eintrag bekommt aria-current="page" und wird, wenn er nicht
+	 *   verlinkt ist, zu <strong> statt zu <span>.
+	 * * Kein title-Attribut am Verweis: Contao 5 hat es aus der Navigation
+	 *   entfernt, Contao 4.13 setzte es noch.
 	 *
-	 * Die Klassen "first" und "last" setzt der Kern seit Contao 5 nicht mehr
-	 * (in 4.13 gab es sie noch in Module::renderNavigation()); sie fehlen hier
-	 * deshalb ebenfalls, damit die Ausgabe auf beiden Generationen gleich ist.
+	 * Ebenfalls nicht übernommen sind die Klassen "first" und "last": Die setzt
+	 * der Kern seit Contao 5 nicht mehr (in 4.13 gab es sie noch in
+	 * Module::renderNavigation()). So bleibt die Ausgabe auf beiden
+	 * Contao-Generationen gleich.
 	 *
 	 * Die Methode baut die Auszeichnung selbst zusammen statt sie dem Template
 	 * zu überlassen: Eine wechselnde Verschachtelungstiefe lässt sich in einer
@@ -235,16 +244,29 @@ class Pagelist extends AbstractListElement
 			}
 
 			$strClass = !empty($arrClasses) ? ' class="' . implode(' ', $arrClasses) . '"' : '';
+
+			// Contao gibt aria-haspopup über seine Attributsammlung als
+			// boolesches Attribut aus, was im Quelltext als aria-haspopup=""
+			// landet. Hier steht bewusst "true": Ein leerer Wert bedeutet nach
+			// der ARIA-Spezifikation "false", das Attribut wäre also wirkungslos.
+			// Für CSS macht es keinen Unterschied, [aria-haspopup] trifft beides.
 			$strHasPopup = $strSubitems ? ' aria-haspopup="true"' : '';
 			$strCurrent = $objNode->active ? ' aria-current="page"' : '';
 
 			if ($objNode->link)
 			{
-				$strLink = '<a href="' . StringUtil::specialcharsUrl($objNode->link) . '" title="' . $objNode->name . '"' . $strClass . $strCurrent . $strHasPopup . '>' . $objNode->title . '</a>';
+				$strLink = '<a href="' . StringUtil::specialcharsUrl($objNode->link) . '"' . $strClass . $strCurrent . $strHasPopup . '>' . $objNode->title . '</a>';
+			}
+			elseif ($objNode->active)
+			{
+				// Die aktive, nicht verlinkte Seite wird wie im Kern zu <strong>.
+				$strLink = '<strong' . $strClass . $strCurrent . $strHasPopup . '>' . $objNode->title . '</strong>';
 			}
 			else
 			{
-				$strLink = '<span' . $strClass . $strCurrent . $strHasPopup . '>' . $objNode->title . '</span>';
+				// Bleibt für geschützte Seiten: Sie sind weder aktiv noch
+				// erreichbar, eine Hervorhebung wäre hier falsch.
+				$strLink = '<span' . $strClass . $strHasPopup . '>' . $objNode->title . '</span>';
 			}
 
 			$strItems .= '<li' . $strClass . '>' . $strLink . $strSubitems . '</li>';

@@ -95,17 +95,33 @@ das:
   versteckt oder über "Manuelle Seitenauswahl nicht anzeigen" ausgeblendet),
   rutschen ihre Kinder einfach eine Ebene höher, statt eine Kette leerer
   `<ul>`-Hüllen zu erzeugen.
-* `renderTree()` baut daraus die HTML-Auszeichnung zusammen — rekursiv und
-  in derselben Form wie `nav_default` im Contao-Kern: `level_N` an der `<ul>`
-  jeder Ebene, `submenu` plus `aria-haspopup="true"` an Einträgen mit
-  Unterebene, `aria-current="page"` am aktiven Eintrag, und die Klassen sowohl
-  am `<li>` als auch am Verweiselement. Die Klasse `submenu` wird erst nach
-  dem Rendern der Unterebene gesetzt, nicht anhand der Kinderzahl — eine
-  Unterebene kann leer bleiben, obwohl der Knoten Kinder trägt.
+* `renderTree()` baut daraus die HTML-Auszeichnung zusammen — rekursiv und in
+  derselben Form wie die Sitemap von Contao 5: `level_N` an der `<ul>` jeder
+  Ebene, `submenu` plus `aria-haspopup` an Einträgen mit Unterebene,
+  `aria-current="page"` am aktiven Eintrag, `<strong>` statt `<a>` für die
+  aktive, nicht verlinkte Seite, und die Klassen sowohl am `<li>` als auch am
+  Verweiselement. Die Klasse `submenu` wird erst nach dem Rendern der
+  Unterebene gesetzt, nicht anhand der Kinderzahl — eine Unterebene kann leer
+  bleiben, obwohl der Knoten Kinder trägt.
 
-  Nicht übernommen wurden `first` und `last`: Der Kern setzt sie seit Contao 5
-  nicht mehr (in 4.13 standen sie noch in `Module::renderNavigation()`), und
-  die Ausgabe soll auf beiden Generationen identisch sein.
+Als Referenz diente nicht der Quelltext, sondern die tatsächliche Ausgabe einer
+laufenden Contao-5.7-Sitemap. Das war nötig, weil Contao 5 die Navigation über
+`nav_default.html.twig` rendert und nicht mehr über die gleichnamige
+`.html5`-Datei — beide unterscheiden sich in Details. Drei Punkte fallen dabei
+auseinander:
+
+| Merkmal | Contao 4.13 | Contao 5 | Hier |
+|---|---|---|---|
+| `first` / `last` | ja | nein | nein |
+| `title` am Verweis | ja | nein | nein |
+| `aria-haspopup` | `"true"` | `""` | `"true"` |
+
+`first`/`last` und `title` folgen Contao 5, damit die Ausgabe auf beiden
+Generationen gleich ist. Bei `aria-haspopup` steht bewusst `"true"`: Contao
+setzt das Attribut über seine Attributsammlung als booleschen Wert, wodurch im
+Quelltext `aria-haspopup=""` landet — ein leerer Wert bedeutet nach der
+ARIA-Spezifikation jedoch `false`. Für CSS ist der Unterschied bedeutungslos,
+`[aria-haspopup]` trifft beide Schreibweisen.
 
 Die Methode erzeugt die Auszeichnung selbst, statt sie dem Template zu
 überlassen: Eine wechselnde Verschachtelungstiefe lässt sich in einer

@@ -1,5 +1,24 @@
 # Seiten- und Artikellisten Changelog
 
+## Version 1.2.1 (2026-08-15)
+
+Nachbesserung zu 1.2.0: Als Vorlage diente dort der Quelltext von
+`nav_default.html5`. Contao 5 rendert die Navigation aber über
+`nav_default.html.twig`, und beide unterscheiden sich. Abgeglichen wurde
+deshalb jetzt gegen die tatsächliche Ausgabe einer laufenden 5.7-Sitemap.
+
+* Fix: Das `title`-Attribut am Verweis ist entfallen — Contao 5 setzt es in der
+  Navigation nicht mehr (Contao 4.13 tat es noch)
+* Fix: Die aktive, nicht verlinkte Seite steht jetzt in `<strong>` statt in
+  `<span>`, wie im Contao-Kern. Geschützte Seiten behalten `<span>`: Sie sind
+  weder aktiv noch erreichbar, eine Hervorhebung wäre dort irreführend
+
+Bewusst abweichend bleibt `aria-haspopup="true"`. Contao gibt das Attribut über
+seine Attributsammlung als booleschen Wert aus, wodurch im Quelltext
+`aria-haspopup=""` steht — ein leerer Wert bedeutet nach der
+ARIA-Spezifikation aber `false`. Für CSS ändert das nichts, `[aria-haspopup]`
+trifft beide Schreibweisen.
+
 ## Version 1.2.0 (2026-08-15)
 
 * Change: Die Seitenliste zeichnet den Seitenbaum jetzt genauso aus wie die

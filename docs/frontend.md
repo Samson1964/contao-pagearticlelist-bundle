@@ -8,19 +8,20 @@ Installation.
 ## Seitenliste — `ce_page_list`
 
 Die Liste ist ein echter, verschachtelter Seitenbaum — jede Unterseite steht
-innerhalb des `<li>` ihrer Elternseite. Die Auszeichnung entspricht der
-Navigation und der Sitemap des Contao-Kerns (`nav_default`), sodass vorhandenes
-Navigations-CSS eines Themes ohne Anpassung greift:
+innerhalb des `<li>` ihrer Elternseite. Die Auszeichnung entspricht der Sitemap
+von Contao 5 (`nav_default`), sodass vorhandenes Navigations-CSS eines Themes
+ohne Anpassung greift:
 
 ```html
 <nav class="ce_page_list block">
 <ul class="level_1">
-	<li class="submenu"><a href="/kapitel-1" title="Kapitel 1" class="submenu" aria-haspopup="true">Kapitel 1</a>
+	<li class="submenu"><a href="/kapitel-1" class="submenu" aria-haspopup="true">Kapitel 1</a>
 		<ul class="level_2">
-			<li><a href="/kapitel-1-1" title="Kapitel 1.1">Kapitel 1.1</a></li>
-			<li><a href="/kapitel-1-2" title="Kapitel 1.2">Kapitel 1.2</a></li>
+			<li><a href="/kapitel-1-1">Kapitel 1.1</a></li>
+			<li><a href="/kapitel-1-2">Kapitel 1.2</a></li>
 		</ul>
 	</li>
+	<li class="active"><strong class="active" aria-current="page">Aktuelle Seite</strong></li>
 	<li class="protected"><span class="protected">Interner Bereich</span></li>
 </ul>
 </nav>
@@ -45,16 +46,35 @@ Version 5 ebenfalls nicht mehr (in 4.13 gab es sie noch), und die Ausgabe soll
 auf beiden Generationen gleich sein. Für dieselbe Wirkung genügt in CSS
 `li:first-child` beziehungsweise `li:last-child`.
 
-Verlinkte Seiten stehen in einem `<a>`, nicht verlinkte in einem `<span>` — so
-lassen sich beide Fälle getrennt gestalten. Ein `<span>` erscheint bei
-geschützten Seiten immer und bei der aktiven Seite zusätzlich dann, wenn
-"Aktive Seite nicht verlinken" aktiv ist.
+Ebenso fehlt das `title`-Attribut am Verweis — auch das hat Contao 5 aus der
+Navigation entfernt, Contao 4.13 setzte es noch.
+
+Je nach Zustand steht der Titel in einem anderen Element:
+
+| Element | Fall |
+|---|---|
+| `<a href="…">` | Normalfall, Seite ist verlinkt |
+| `<strong>` | Aktive Seite, wenn "Aktive Seite nicht verlinken" aktiv ist |
+| `<span>` | Geschützte Seite |
+
+Der `<strong>`-Fall entspricht dem Contao-Kern, der die aktive Seite in der
+Navigation ebenso auszeichnet. Geschützte Seiten bekommen bewusst ein neutrales
+`<span>`: Sie sind weder aktiv noch erreichbar, eine Hervorhebung wäre dort
+irreführend.
 
 Barrierefreiheit: Einträge mit Unterebene tragen `aria-haspopup="true"`, der
-aktive Eintrag trägt `aria-current="page"` — beides analog zum Kern.
+aktive Eintrag trägt `aria-current="page"`.
+
+Ein Unterschied zum Kern ist beabsichtigt: Contao gibt `aria-haspopup` über
+seine Attributsammlung als boolesches Attribut aus, im Quelltext steht dort
+also `aria-haspopup=""`. Ein leerer Wert bedeutet nach der ARIA-Spezifikation
+aber `false`, das Attribut wäre damit wirkungslos — hier steht deshalb `"true"`.
+Für CSS ändert das nichts, `[aria-haspopup]` trifft beide Schreibweisen.
 
 Der Verweistext ist der Seitentitel (`pageTitle`), ersatzweise der Seitenname.
-Der Seitenname steht zusätzlich im `title`-Attribut.
+Auch das weicht vom Kern ab, der an dieser Stelle immer den Seitennamen nimmt —
+es ist aber das Verhalten seit der ersten Fassung und wechselt deshalb nicht
+stillschweigend.
 
 Enthält die Liste keine Seite, bleibt `<nav>` leer — ohne verschachteltes
 CSS für einen Leerzustand zu benötigen.
