@@ -1,5 +1,21 @@
 # Seiten- und Artikellisten Changelog
 
+## Version 1.2.0 (2026-08-15)
+
+* Change: Die Seitenliste zeichnet den Seitenbaum jetzt genauso aus wie die
+  Navigation und die Sitemap des Contao-Kerns (`nav_default`): Einträge mit
+  Unterebene bekommen die Klasse `submenu` und `aria-haspopup="true"`, der
+  aktive Eintrag `aria-current="page"`, und die Klassen stehen sowohl am `<li>`
+  als auch am Verweiselement. Vorhandenes Navigations-CSS eines Themes greift
+  damit ohne Anpassung
+* Change: `submenu` wird erst gesetzt, wenn die Unterebene tatsächlich Einträge
+  enthält — nicht schon dann, wenn der Knoten Kinder trägt (die können durch
+  Sichtbarkeitsregeln alle wegfallen)
+
+Nicht übernommen wurden die Klassen `first` und `last`: Der Contao-Kern setzt
+sie seit Version 5 nicht mehr, und die Ausgabe soll auf 4.13 und 5 identisch
+sein. In CSS leisten `li:first-child` und `li:last-child` dasselbe.
+
 ## Version 1.1.1 (2026-08-15)
 
 * Fix: Der Abschnitt "Element ausblenden" / "Element anzeigen von/bis" fehlte

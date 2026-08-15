@@ -79,18 +79,10 @@ class Pagelist extends AbstractListElement
 			// geschützte — beides gibt den Titel dann als <span> statt als <a> aus.
 			$blnLinkable = !$blnProtected && !($blnActive && $this->article_list_no_active_link);
 
-			$arrClasses = array();
-
-			if ($blnActive)
-			{
-				$arrClasses[] = 'active';
-			}
-
-			if ($blnProtected)
-			{
-				$arrClasses[] = 'protected';
-			}
-
+			// Die CSS-Klasse entsteht erst in renderTree(): Ob ein Eintrag die
+			// Klasse "submenu" bekommt, steht erst fest, wenn seine Unterebene
+			// gerendert ist — und die kann leer bleiben, obwohl der Knoten
+			// Kinder hat.
 			$arrPages[] = array
 			(
 				'id'        => $intId,
@@ -103,7 +95,6 @@ class Pagelist extends AbstractListElement
 				'link'      => $blnLinkable ? $this->generatePageUrl($objPage) : '',
 				'protected' => $blnProtected,
 				'active'    => $blnActive,
-				'class'     => implode(' ', $arrClasses),
 			);
 		}
 
@@ -177,8 +168,20 @@ class Pagelist extends AbstractListElement
 	/**
 	 * Rendert einen Seitenbaum als verschachtelte <ul>-Struktur.
 	 *
-	 * Die umschließende <ul> jeder Ebene trägt die Klasse "level_N", genau wie
-	 * bei den Navigationsmodulen des Contao-Kerns.
+	 * Die Auszeichnung folgt der Navigation und der Sitemap des Contao-Kerns
+	 * (siehe dessen Template navigation/nav_default.html5):
+	 *
+	 * * Die <ul> jeder Ebene trägt die Klasse "level_N", beginnend bei 1.
+	 * * Ein Eintrag mit Unterebene bekommt die Klasse "submenu" und am
+	 *   Verweiselement zusätzlich aria-haspopup="true".
+	 * * Die Klassen stehen sowohl am <li> als auch am Verweiselement, weil sich
+	 *   in CSS je nach Zusammenspiel mit dem Theme mal das eine, mal das andere
+	 *   besser ansprechen lässt — auch das macht der Kern so.
+	 * * Der aktive Eintrag bekommt aria-current="page".
+	 *
+	 * Die Klassen "first" und "last" setzt der Kern seit Contao 5 nicht mehr
+	 * (in 4.13 gab es sie noch in Module::renderNavigation()); sie fehlen hier
+	 * deshalb ebenfalls, damit die Ausgabe auf beiden Generationen gleich ist.
 	 *
 	 * Die Methode baut die Auszeichnung selbst zusammen statt sie dem Template
 	 * zu überlassen: Eine wechselnde Verschachtelungstiefe lässt sich in einer
@@ -189,9 +192,9 @@ class Pagelist extends AbstractListElement
 	 * das Template nur noch ausgibt.
 	 *
 	 * @param array<int,object> $arrNodes Baumknoten dieser Ebene, wie von
-	 *                                   buildTree() geliefert
-	 * @param int                $intLevel Verschachtelungstiefe der aktuellen
-	 *                                     Ebene, beginnend bei 1
+	 *                                    buildTree() geliefert
+	 * @param int               $intLevel Verschachtelungstiefe der aktuellen
+	 *                                    Ebene, beginnend bei 1
 	 *
 	 * @return string Die fertige <ul>-Struktur dieser Ebene, oder eine leere
 	 *                Zeichenkette wenn $arrNodes leer ist
@@ -207,18 +210,44 @@ class Pagelist extends AbstractListElement
 
 		foreach ($arrNodes as $objNode)
 		{
+			// Erst die Unterebene rendern: Ob "submenu" gesetzt wird, hängt am
+			// tatsächlichen Ergebnis und nicht daran, ob der Knoten Kinder trägt —
+			// eine Unterebene kann leer bleiben.
+			$strSubitems = $this->renderTree($objNode->children, $intLevel + 1);
+
+			// Reihenfolge wie in Module::compileNavigationRow(): active, submenu,
+			// protected.
+			$arrClasses = array();
+
+			if ($objNode->active)
+			{
+				$arrClasses[] = 'active';
+			}
+
+			if ($strSubitems)
+			{
+				$arrClasses[] = 'submenu';
+			}
+
+			if ($objNode->protected)
+			{
+				$arrClasses[] = 'protected';
+			}
+
+			$strClass = !empty($arrClasses) ? ' class="' . implode(' ', $arrClasses) . '"' : '';
+			$strHasPopup = $strSubitems ? ' aria-haspopup="true"' : '';
+			$strCurrent = $objNode->active ? ' aria-current="page"' : '';
+
 			if ($objNode->link)
 			{
-				$strLink = '<a href="' . StringUtil::specialcharsUrl($objNode->link) . '" title="' . $objNode->name . '">' . $objNode->title . '</a>';
+				$strLink = '<a href="' . StringUtil::specialcharsUrl($objNode->link) . '" title="' . $objNode->name . '"' . $strClass . $strCurrent . $strHasPopup . '>' . $objNode->title . '</a>';
 			}
 			else
 			{
-				$strLink = '<span>' . $objNode->title . '</span>';
+				$strLink = '<span' . $strClass . $strCurrent . $strHasPopup . '>' . $objNode->title . '</span>';
 			}
 
-			$strClass = $objNode->class ? ' class="' . $objNode->class . '"' : '';
-
-			$strItems .= '<li' . $strClass . '>' . $strLink . $this->renderTree($objNode->children, $intLevel + 1) . '</li>';
+			$strItems .= '<li' . $strClass . '>' . $strLink . $strSubitems . '</li>';
 		}
 
 		return '<ul class="level_' . $intLevel . '">' . $strItems . '</ul>';

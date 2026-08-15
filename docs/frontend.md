@@ -8,18 +8,20 @@ Installation.
 ## Seitenliste — `ce_page_list`
 
 Die Liste ist ein echter, verschachtelter Seitenbaum — jede Unterseite steht
-innerhalb des `<li>` ihrer Elternseite, genau wie bei den Navigationsmodulen
-des Contao-Kerns:
+innerhalb des `<li>` ihrer Elternseite. Die Auszeichnung entspricht der
+Navigation und der Sitemap des Contao-Kerns (`nav_default`), sodass vorhandenes
+Navigations-CSS eines Themes ohne Anpassung greift:
 
 ```html
 <nav class="ce_page_list block">
 <ul class="level_1">
-	<li><a href="/kapitel-1" title="Kapitel 1">Kapitel 1</a>
+	<li class="submenu"><a href="/kapitel-1" title="Kapitel 1" class="submenu" aria-haspopup="true">Kapitel 1</a>
 		<ul class="level_2">
 			<li><a href="/kapitel-1-1" title="Kapitel 1.1">Kapitel 1.1</a></li>
+			<li><a href="/kapitel-1-2" title="Kapitel 1.2">Kapitel 1.2</a></li>
 		</ul>
 	</li>
-	<li class="protected"><span>Interner Bereich</span></li>
+	<li class="protected"><span class="protected">Interner Bereich</span></li>
 </ul>
 </nav>
 ```
@@ -29,17 +31,27 @@ CSS-Klasse `levelN` am `<li>` erkennbar war. Vorhandenes CSS, das gezielt
 `levelN` angesprochen hat, muss deshalb auf die neue Struktur umgestellt
 werden — etwa auf `ul.level_2 > li` für die zweite Ebene.
 
-Die CSS-Klassen am `<li>`:
+Die CSS-Klassen stehen — wie beim Contao-Kern — sowohl am `<li>` als auch am
+Verweiselement darin:
 
 | Klasse | Bedeutung |
 |---|---|
+| `submenu` | Der Eintrag hat eine Unterebene |
 | `active` | Die Seite, auf der das Element steht |
 | `protected` | Geschützte Seite, ohne Verweis ausgegeben |
+
+Die Klassen `first` und `last` gibt es nicht: Der Contao-Kern setzt sie seit
+Version 5 ebenfalls nicht mehr (in 4.13 gab es sie noch), und die Ausgabe soll
+auf beiden Generationen gleich sein. Für dieselbe Wirkung genügt in CSS
+`li:first-child` beziehungsweise `li:last-child`.
 
 Verlinkte Seiten stehen in einem `<a>`, nicht verlinkte in einem `<span>` — so
 lassen sich beide Fälle getrennt gestalten. Ein `<span>` erscheint bei
 geschützten Seiten immer und bei der aktiven Seite zusätzlich dann, wenn
 "Aktive Seite nicht verlinken" aktiv ist.
+
+Barrierefreiheit: Einträge mit Unterebene tragen `aria-haspopup="true"`, der
+aktive Eintrag trägt `aria-current="page"` — beides analog zum Kern.
 
 Der Verweistext ist der Seitentitel (`pageTitle`), ersatzweise der Seitenname.
 Der Seitenname steht zusätzlich im `title`-Attribut.

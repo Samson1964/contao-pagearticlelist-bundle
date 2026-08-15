@@ -95,9 +95,17 @@ das:
   versteckt oder über "Manuelle Seitenauswahl nicht anzeigen" ausgeblendet),
   rutschen ihre Kinder einfach eine Ebene höher, statt eine Kette leerer
   `<ul>`-Hüllen zu erzeugen.
-* `renderTree()` baut daraus die HTML-Auszeichnung zusammen — rekursiv, mit
-  der Klasse `level_N` an der `<ul>` jeder Ebene, analog zu den
-  Navigationsmodulen des Contao-Kerns.
+* `renderTree()` baut daraus die HTML-Auszeichnung zusammen — rekursiv und
+  in derselben Form wie `nav_default` im Contao-Kern: `level_N` an der `<ul>`
+  jeder Ebene, `submenu` plus `aria-haspopup="true"` an Einträgen mit
+  Unterebene, `aria-current="page"` am aktiven Eintrag, und die Klassen sowohl
+  am `<li>` als auch am Verweiselement. Die Klasse `submenu` wird erst nach
+  dem Rendern der Unterebene gesetzt, nicht anhand der Kinderzahl — eine
+  Unterebene kann leer bleiben, obwohl der Knoten Kinder trägt.
+
+  Nicht übernommen wurden `first` und `last`: Der Kern setzt sie seit Contao 5
+  nicht mehr (in 4.13 standen sie noch in `Module::renderNavigation()`), und
+  die Ausgabe soll auf beiden Generationen identisch sein.
 
 Die Methode erzeugt die Auszeichnung selbst, statt sie dem Template zu
 überlassen: Eine wechselnde Verschachtelungstiefe lässt sich in einer
